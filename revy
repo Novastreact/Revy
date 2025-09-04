@@ -1,0 +1,123 @@
+#!/usr/bin/env node
+
+/**
+ * Revy - Save & Recovery CLI Tool
+ * User-space executable
+ */
+
+// Load environment
+const os = require('os');
+const path = require('path');
+const fs = require('fs');
+
+// Set up paths
+const HOME = os.homedir();
+process.env.REVY_HOME = path.join(HOME, '.revy');
+process.env.REVY_LIB = path.join(process.env.REVY_HOME, 'lib');
+process.env.REVY_CONFIG = path.join(process.env.REVY_HOME, 'config');
+process.env.REVY_DEPS = path.join(process.env.REVY_HOME, 'deps', 'node_modules');
+process.env.REVY_DATA = path.join(HOME, '.local', 'share', 'revy');
+
+// Import dependencies helper
+const DespendentionImport = require(path.join(process.env.REVY_LIB, 'DespendentionImport.js'));
+const { chalk, ora } = DespendentionImport;
+
+// Import core modules
+const RevyCore = require(path.join(process.env.REVY_LIB, 'RevyCore.js'));
+const ConfigManager = require(path.join(process.env.REVY_LIB, 'ConfigManager.js'));
+const CliInterface = require(path.join(process.env.REVY_LIB, 'CliInterface.js'));
+
+async function main() {
+    try {
+        // Parse command line arguments strictly
+        const args = process.argv.slice(2) || [];
+        const allowed = new Set([
+            '-v',
+            '-version',
+            '--version',
+            '-h',
+            '-help',
+            '--help',
+            '-history',
+            '--history',
+            '-edit',
+            '--edit',
+            '-Rsave',
+            '--Rsave',
+            '-Rcove',
+            '--Rcove'
+        ]);
+
+        // No args -> interactive menu (existing behavior)
+        if (args.length === 0) {
+            await ConfigManager.init();
+            await CliInterface.showMainMenu();
+            return;
+        }
+
+        // Exactly one arg and it must be allowed
+        if (args.length === 1 && allowed.has(args[0])) {
+            const cmd = args[0];
+            switch (cmd) {
+                case '-help':
+                case '--help':
+                case '-h':
+                    await CliInterface.showHelp();
+                    return;
+                case '-history':
+                case '--history':
+                    await CliInterface.showHistory();
+                    return;
+                case '-edit':
+                case '--edit':
+                    await CliInterface.editConfig();
+                    return;
+                case '-Rsave':
+                case '--Rsave':
+                    await CliInterface.recentSave();
+                    return;
+                case '-Rcove':
+                case '--Rcove':
+                    await CliInterface.recentRecovery();
+                    return;
+                case '-v':
+                case '-version':
+                case '--version':
+                    await CliInterface.showVersion();
+                    return;
+                default:
+                    // defensive fallback
+                    console.log(chalk.red('revy command not found'));
+                    console.log('     please try "revy -help"');
+                    process.exit(1);
+            }
+        }
+
+        // Anything else (multiple args, unknown flag, etc.) => error exactly as requested
+        console.log(chalk.whiteBright('revy: Command not found'));
+        console.log(chalk.cyanBright('     please try "revy -help"'));
+        process.exit(1);
+
+    } catch (error) {
+        console.error(chalk.red('\n❌ Error:'), error.message);
+        process.exit(1);
+    }
+}
+
+
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+    console.log(chalk.yellow('\n\n⚠️  Operation interrupted by user'));
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    console.log(chalk.yellow('\n\n⚠️  Operation terminated'));
+    process.exit(0);
+});
+
+// Run main function
+main().catch(error => {
+    console.error(chalk.red('Fatal error:'), error);
+    process.exit(1);
+});
