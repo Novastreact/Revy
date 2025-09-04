@@ -5,12 +5,12 @@ A user-space backup and recovery tool for Linux systems with interactive CLI int
 ## Requirements
 
 - **Node.js**: Version 24 or higher
-- **Operating System**: Linux (tested) - Windows compatibility unknown
+- **Operating System**: Linux (tested)
 - **Dependencies**: chalk, ora, cli-progress (auto-installed)
 
 ## Installation
 
-1. Extract all files to a directory
+1. cd Revy
 2. Run the installation script:
 ```bash
 chmod +x revy-install.sh
